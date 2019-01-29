@@ -1,39 +1,34 @@
-from socket import socket
-
-class HttpServerTCPHandler(socketserver.BaseRequestHandler):
-    def __init__(self):
-        self.host = "localhost"
-        self.port = 9999
+from tcpHandler import TCPHandler
 
 
-    def start(self):
-        self.server_socket = socket(family=socket.AF_INET, type=socket.SOCK_STREAM)
-        self.server_socket.setsockopt(socket.SOL_STREAM, socket.SO_REUSERADDR, 1)
-        self.server_socket.bind((self.host, self.port))
-        self.server_socket.listen(5)
+class HttpServer(TCPHandler):
+    headers = [
+        'Server: StaticFileServer',
+        'Content-Type: text/html',
+    ]
 
-        print("Listening at {} {}".format(self.host, self.port))
+    status_codes = {
+        '200': 'OK',
+        '404': 'Not Found',
+    }
 
-        while True:
-            client_conn, client_addr = self.server_socket.accept()
-            print("Connected to {}".format(client_addr))
-            data = client_conn.recv(4096)
+    def handle_request(self, data):
+        response = (
+            b'HTTP/1.1 200 OK\r\n',
+            b'Server: StaticFileServer\r\n',
+            b'Content-Type: text/html\r\n',
+            b'\r\n',
+            b'<html><body><h1>Hello World</h1></body></html>'
+        )
+        return b"".join(response)
 
-            response = self.handle_request(data)
+    def response(self, status_code):
+        response_detail = self.status_codes[status_code]
+        return b'HTTP/1.1 {} {}\r\n'.format(status_code, response_detail)
 
-            client_conn.sendall(response)
-            client_conn.close()
+    def headers(self):
+        response = b''
+        for header in self.headers:
+            response += b'{}'.format(header)
 
-
-    def handle_request(self):
-        while True:
-
-
-if __name__ == "__main__":
-    HOST, PORT = "localhost", 9999
-
-    # Create the server, binding to localhost on port 9999
-    with socketserver.TCPServer((HOST, PORT), MyTCPHandler) as server:
-        # Activate the server; this will keep running until you
-        # interrupt the program with Ctrl-C
-        server.serve_forever()
+        return response
